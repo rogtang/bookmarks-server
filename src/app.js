@@ -7,6 +7,7 @@ const cors = require('cors')
 const logger = require('./logger')
 const { v4: uuid } = require('uuid');
 const bookmarkRouter = require('./bookmark/bookmark-router')
+const BookmarksService = require('./bookmark/bookmark-service')
 
 const app = express()
 
@@ -17,6 +18,29 @@ const morganOption = (NODE_ENV === 'production')
 app.use(morgan(morganOption))
 app.use(helmet())
 app.use(cors())
+
+app.get('/bookmarks', (req, res, next) => {
+  const knexInstance = req.app.get('db')
+  BookmarksService.getBookmarks(knexInstance)
+  .then(bookmarks => {
+    res.json(bookmarks)
+  })
+  .catch(next)
+})
+
+app.get('/bookmarks/:bookmarks_id', (req, res, next) => {
+  const knexInstance = req.app.get('db')
+  BookmarksService.getById(knexInstance, req.params.bookmarks_id)
+    .then(bookmarks => {
+      if (!bookmarks) {
+        return res.status(404).json({
+          error: {message: `Bookmark doesn't exist`}
+        })
+      }
+      res.json(bookmarks)
+    })
+    .catch(next)
+})
 
 app.use(function validateBearerToken(req, res, next) {
   const apiToken = process.env.API_TOKEN
