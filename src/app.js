@@ -7,7 +7,6 @@ const cors = require('cors')
 const logger = require('./logger')
 const { v4: uuid } = require('uuid');
 const bookmarkRouter = require('./bookmark/bookmark-router')
-const BookmarksService = require('./bookmark/bookmark-service')
 
 const app = express()
 
@@ -32,7 +31,7 @@ app.use(function validateBearerToken(req, res, next) {
   next()
 })
 
-app.use(bookmarkRouter)
+app.use('/api', bookmarkRouter)
 
 app.use(function errorHandler(error, req, res, next) {
    let response

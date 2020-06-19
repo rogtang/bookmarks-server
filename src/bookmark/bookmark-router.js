@@ -1,3 +1,4 @@
+const path = require('path')
 const express = require('express')
 const logger = require('../logger')
 //const { v4: uuid } = require('uuid');
@@ -72,7 +73,7 @@ bookmarkRouter
       .then(bookmark => {
         res
         .status(201)
-        .location(`/bookmarks/${bookmark.id}`)
+        .location(path.posix.join(req.originalUrl, `/${bookmark.id}`))
         .json(serializeBookmark(bookmark));      
       })
       .catch(next)
@@ -108,6 +109,41 @@ bookmarkRouter
       })
       .catch(next)
       })
+    .patch(bodyParser, (req, res, next) => {
+      const {title, url, description, rating} = req.body;
+      bookmarkToUpdate = {title, url, description, rating}
+      //validation below
+      const numberOfValues = Object.values(bookmarkToUpdate).filter(Boolean).length
+      if (numberOfValues === 0) {
+        return res.status(400).json({
+          error: {
+            message: `Request body must contain either 'title', 'url', 'description' or 'rating'`
+           }
+          })
+      }
+      
+      if (rating && (!Number.isInteger(rating) || rating < 0 || rating > 5)) {
+          logger.error(`Invalid rating '${rating}' supplied`)
+          return res.status(400).send({
+            error: { message: "'rating' must be a number between 0 and 5" }
+          })
+        }
+    
+      if (url && !isWebUri(url)) {
+          logger.error(`Invalid url '${url}' supplied`)
+          return res.status(400).send({
+            error: { message: "'url' must be a valid URL"}
+          })
+        }
+    
+    const knexInstance = req.app.get('db')
+    
+      BookmarksService.updateBookmark(knexInstance, req.params.bookmark_id, bookmarkToUpdate)
+      .then(numRowsAffected => {
+        res.status(204).end()
+      })
+      .catch(next)
+    })
 
 
 module.exports = bookmarkRouter
